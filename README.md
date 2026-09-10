@@ -10,7 +10,7 @@ fuel-brown?style=flat-square)
 coworker-black?style=flat-square)
 
 🌐 THE WEBSITE (yes it's real, yes the buttons work now)
-👉 (https://gentle-marigold-cc6706.netlify.app) 👈
+👉 (https://whimsical-pegasus-31beb8.netlify.app) 👈
 (if it 404s, i'm either sleeping or eating. statistically: eating.)
 
 backup entrance: https://chaudharyjayy.github.io — same void, different door
