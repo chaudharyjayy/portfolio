@@ -9,19 +9,7 @@
        shows a toast with the URL. Can never dead-click again.
   2. The "LIVE DEMO" tag on the project image was a <div> label, not a
      link. → FIXED: it is now a real <a> to the manus.space URL.
-  3. If the GSAP CDN ever fails, the ENTER button used to freeze the
-     gate over the whole page (making every button unclickable).
-     → FIXED: no-GSAP fallback removes the gate instantly.
-  4. Gate now also gets pointer-events:none + visibility:hidden after
-     entry, so it can never sit invisibly on top of your buttons.
 
-  DEPLOY (then links work 100% for everyone):
-    A) GITHUB PAGES: new repo named  chaudharyjayy.github.io
-       → upload as index.html → Settings → Pages → main → live at
-       https://chaudharyjayy.github.io
-    B) NETLIFY: app.netlify.com/drop → drag this file → rename site
-       to "jaychaudhary" → https://jaychaudhary.netlify.app
-=====================================================================
 -->
 <!DOCTYPE html>
 <html lang="en">
