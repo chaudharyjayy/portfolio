@@ -1,0 +1,920 @@
+<!--
+=====================================================================
+  FIX LOG — why the buttons "didn't work":
+  1. The GitHub / Instagram / Live-Demo links used plain target="_blank".
+     In sandboxed previews (in-chat preview, some iframes) popups are
+     silently blocked, so clicking did NOTHING.
+     → FIXED: JS handler tries  window.open  →  same-tab  →  top-frame
+       →  if ALL are blocked it COPIES the link to your clipboard and
+       shows a toast with the URL. Can never dead-click again.
+  2. The "LIVE DEMO" tag on the project image was a <div> label, not a
+     link. → FIXED: it is now a real <a> to the manus.space URL.
+  3. If the GSAP CDN ever fails, the ENTER button used to freeze the
+     gate over the whole page (making every button unclickable).
+     → FIXED: no-GSAP fallback removes the gate instantly.
+  4. Gate now also gets pointer-events:none + visibility:hidden after
+     entry, so it can never sit invisibly on top of your buttons.
+
+  DEPLOY (then links work 100% for everyone):
+    A) GITHUB PAGES: new repo named  chaudharyjayy.github.io
+       → upload as index.html → Settings → Pages → main → live at
+       https://chaudharyjayy.github.io
+    B) NETLIFY: app.netlify.com/drop → drag this file → rename site
+       to "jaychaudhary" → https://jaychaudhary.netlify.app
+=====================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jay Chaudhary — Portfolio</title>
+<meta name="author" content="Jay Chaudhary">
+<meta name="description" content="Jay Chaudhary — bio student larping into tech. Portfolio in monochrome.">
+<meta property="og:title" content="Jay Chaudhary — Portfolio">
+<meta property="og:description" content="bio student // larping into tech // monochrome portfolio">
+<meta property="og:url" content="https://chaudharyjayy.github.io">
+<meta property="og:image" content="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1d1957cbc-3ea2-4ea4-8f53-3bd7e832a4ae.png">
+<link rel="canonical" href="https://chaudharyjayy.github.io">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230a0a0a'/%3E%3Ctext x='32' y='47' font-family='Arial Black,Arial' font-size='38' fill='%23f2f2f2' text-anchor='middle'%3EJ%3C/text%3E%3Crect x='46' y='40' width='8' height='8' fill='%23e01b1b'/%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/anton@5.1.0/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5.0.8/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/space-mono@5.0.8/index.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --black:#0a0a0a; --dark:#111; --white:#f2f2f2; --gray:#8a8a8a;
+  --red:#e01b1b;
+  --grain:url('https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/19f4a93b8-318c-497a-a402-aab475a6c463.png');
+}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--white);font-family:'Space Grotesk',sans-serif;overflow-x:hidden}
+a,button{cursor:pointer}
+
+/* ============ RED SELECTION ============ */
+::selection{background:var(--red);color:#fff}
+::-moz-selection{background:var(--red);color:#fff}
+
+.font-display{font-family:'Anton',sans-serif;font-weight:400}
+.font-mono2{font-family:'Space Mono',monospace}
+
+/* ============ GRAIN + VIGNETTE ============ */
+.grain-overlay{position:fixed;inset:0;pointer-events:none;z-index:9990;opacity:.14;
+  background-image:var(--grain);background-size:512px;mix-blend-mode:overlay;
+  animation:grainShift 1.2s steps(4) infinite}
+@keyframes grainShift{
+  0%{background-position:0 0}25%{background-position:-60px 40px}
+  50%{background-position:40px -60px}75%{background-position:-40px -40px}100%{background-position:0 0}}
+.noise-dots{position:fixed;inset:0;pointer-events:none;z-index:9991;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:128px}
+.vignette{position:fixed;inset:0;pointer-events:none;z-index:9989;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)}
+
+/* ============ CURSOR ============ */
+#cursor{width:22px;height:22px;border:1px solid rgba(255,255,255,.6);border-radius:50%;
+  position:fixed;pointer-events:none;z-index:10001;mix-blend-mode:difference;
+  transition:transform .18s ease,background .18s ease,border-color .18s ease}
+#cursor.hover{transform:scale(2.4);background:rgba(255,255,255,.12);border-color:#fff}
+#cursorDot{width:4px;height:4px;background:#fff;border-radius:50%;position:fixed;
+  pointer-events:none;z-index:10001;mix-blend-mode:difference}
+@media(pointer:coarse){#cursor,#cursorDot{display:none}}
+
+/* ============ LINK TOAST (fallback when popups blocked) ============ */
+#linkToast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:10002;
+  background:#000;border:1px solid var(--red);padding:.9rem 1.4rem;max-width:92vw;
+  display:flex;flex-direction:column;gap:.35rem;box-shadow:0 10px 40px rgba(0,0,0,.8)}
+#linkToast code{color:var(--red);word-break:break-all;font-size:.65rem}
+
+/* ============ GATE (ENTRY) ============ */
+#gate{position:fixed;inset:0;z-index:9000;background:#050505;overflow:hidden}
+#gateCanvas{position:absolute;inset:0;width:100%;height:100%}
+.gate-inner{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:0 1rem}
+.gate-title{font-size:clamp(3rem,11vw,9.5rem);line-height:.9;letter-spacing:.02em;
+  text-transform:uppercase;-webkit-text-stroke:1px rgba(255,255,255,.9);color:transparent;
+  transition:color .4s ease}
+.gate-title:hover{color:rgba(255,255,255,.08)}
+.gate-sub{font-size:clamp(.6rem,1.4vw,.8rem);letter-spacing:.55em;text-transform:uppercase;opacity:.5}
+#enterBtn{margin-top:2.5rem;padding:1rem 3rem;border:1px solid rgba(255,255,255,.35);
+  background:transparent;color:var(--white);font-family:'Space Mono',monospace;
+  font-size:.8rem;letter-spacing:.4em;text-transform:uppercase;cursor:pointer;
+  position:relative;overflow:hidden;transition:color .35s ease,border-color .35s ease}
+#enterBtn span{position:relative;z-index:2}
+#enterBtn::before{content:'';position:absolute;inset:0;background:var(--white);
+  transform:translateY(101%);transition:transform .35s cubic-bezier(.7,0,.3,1)}
+#enterBtn:hover{color:#000;border-color:#fff}
+#enterBtn:hover::before{transform:translateY(0)}
+.gate-corner{position:absolute;width:34px;height:34px;border-color:rgba(255,255,255,.35);z-index:3}
+.gate-hint{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);
+  font-size:.6rem;letter-spacing:.4em;opacity:.35;text-transform:uppercase;z-index:3;
+  animation:blinkHint 2s ease-in-out infinite}
+@keyframes blinkHint{0%,100%{opacity:.35}50%{opacity:.08}}
+.gate-label{position:absolute;font-family:'Space Mono',monospace;font-size:.6rem;
+  letter-spacing:.35em;text-transform:uppercase;opacity:.4;z-index:3}
+
+/* ============ PHOTOS / FLOATING 3D IMAGES ============ */
+.photo-wrap{position:absolute;will-change:transform;transition:transform .1s linear;z-index:3}
+.photo{position:relative;border:1px solid rgba(255,255,255,.18);background:#000;
+  transform-style:preserve-3d;transition:transform .5s cubic-bezier(.2,.8,.2,1),box-shadow .5s ease;
+  box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.photo img{display:block;width:100%;height:100%;object-fit:cover;
+  filter:grayscale(1) contrast(1.25) brightness(.92);pointer-events:none}
+.photo::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.18) 2px,rgba(0,0,0,.18) 3px)}
+.photo::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;
+  box-shadow:inset 0 0 60px rgba(0,0,0,.6)}
+.photo .photo-tag{position:absolute;bottom:-1.6rem;left:0;font-family:'Space Mono',monospace;
+  font-size:.55rem;letter-spacing:.3em;text-transform:uppercase;opacity:.45;white-space:nowrap}
+.photo:hover{box-shadow:0 30px 90px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.3)}
+
+/* ============ NAV ============ */
+#navbar{transition:background .4s ease,backdrop-filter .4s ease}
+.nav-link{position:relative;text-transform:uppercase;letter-spacing:.25em;font-size:.68rem;
+  opacity:.55;transition:opacity .3s,color .3s}
+.nav-link::after{content:'';position:absolute;left:0;bottom:-4px;width:0;height:1px;
+  background:var(--red);transition:width .35s cubic-bezier(.7,0,.3,1)}
+.nav-link:hover{opacity:1}
+.nav-link:hover::after{width:100%}
+
+/* ============ HERO ============ */
+#heroCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.hero-title{font-size:clamp(3.5rem,14vw,12rem);line-height:.85;text-transform:uppercase;letter-spacing:.01em}
+.hero-stroke{-webkit-text-stroke:1.5px rgba(255,255,255,.85);color:transparent}
+.reveal{opacity:0;transform:translateY(50px)}
+.reveal.active{opacity:1;transform:translateY(0);transition:all .9s cubic-bezier(.2,.8,.2,1)}
+
+/* ============ MARQUEE ============ */
+.marquee{overflow:hidden;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08)}
+.marquee-track{display:flex;width:max-content;animation:marquee 26s linear infinite}
+.marquee:hover .marquee-track{animation-play-state:paused}
+@keyframes marquee{to{transform:translateX(-50%)}}
+.marquee-track span{font-family:'Anton',sans-serif;font-size:1.6rem;letter-spacing:.12em;
+  text-transform:uppercase;padding:1rem 1.6rem;opacity:.25;white-space:nowrap}
+.marquee-track span.red{color:var(--red);opacity:.7}
+
+/* ============ SECTIONS ============ */
+.section-num{font-family:'Anton',sans-serif;font-size:clamp(6rem,14vw,12rem);
+  color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.07);
+  position:absolute;top:-1rem;right:0;line-height:1;pointer-events:none;user-select:none}
+.section-label{font-family:'Space Mono',monospace;font-size:.65rem;letter-spacing:.5em;
+  text-transform:uppercase;opacity:.45}
+.divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent)}
+
+.terminal{border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.02)}
+.terminal-bar{display:flex;align-items:center;gap:.5rem;padding:.6rem .9rem;
+  border-bottom:1px solid rgba(255,255,255,.12);font-family:'Space Mono',monospace;
+  font-size:.6rem;letter-spacing:.2em;opacity:.7}
+.terminal-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25)}
+.terminal-dot.r{background:var(--red);opacity:.9}
+.caret{display:inline-block;width:8px;height:1em;background:var(--white);
+  vertical-align:-2px;animation:caret 1s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+
+.rated-badge{border:2px solid rgba(255,255,255,.8);padding:.5rem .7rem;text-align:center;
+  font-family:'Anton',sans-serif;line-height:1}
+
+/* ============ ARCHIVE ============ */
+.archive-card{transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.archive-card:nth-child(1){transform:rotate(-4deg)}
+.archive-card:nth-child(2){transform:rotate(3deg) translateY(20px)}
+.archive-card:nth-child(3){transform:rotate(-2deg)}
+.archive-card:nth-child(4){transform:rotate(4deg) translateY(16px)}
+.archive-card:nth-child(5){transform:rotate(-3deg)}
+.archive-card:hover{transform:rotate(0) scale(1.05) !important;z-index:5}
+
+/* ============ PROJECT ============ */
+.project-card{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.02);
+  transition:border-color .4s,transform .4s,box-shadow .4s;position:relative;overflow:hidden}
+.project-card:hover{border-color:rgba(255,255,255,.4);transform:translateY(-6px);
+  box-shadow:0 30px 80px rgba(0,0,0,.7)}
+.project-card .shine{position:absolute;top:0;left:-120%;width:60%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);
+  transition:left .8s ease;pointer-events:none}
+.project-card:hover .shine{left:130%}
+.demo-tag{position:absolute;top:1rem;left:1rem;z-index:5;font-family:'Space Mono',monospace;
+  font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;background:rgba(0,0,0,.75);
+  border:1px solid rgba(224,27,27,.6);color:var(--red);padding:.35rem .8rem;
+  text-decoration:none;transition:all .3s}
+.demo-tag:hover{background:var(--red);color:#fff}
+.btn-solid{background:var(--white);color:#000;padding:.9rem 2rem;font-family:'Space Mono',monospace;
+  font-size:.7rem;letter-spacing:.35em;text-transform:uppercase;text-decoration:none;
+  display:inline-flex;align-items:center;gap:.6rem;transition:background .3s,color .3s,transform .3s}
+.btn-solid:hover{background:var(--red);color:#fff;transform:translate(-2px,-2px);
+  box-shadow:4px 4px 0 rgba(255,255,255,.3)}
+.btn-ghost{border:1px solid rgba(255,255,255,.3);padding:.9rem 2rem;font-family:'Space Mono',monospace;
+  font-size:.7rem;letter-spacing:.35em;text-transform:uppercase;text-decoration:none;
+  color:var(--white);display:inline-flex;align-items:center;gap:.6rem;transition:all .3s}
+.btn-ghost:hover{border-color:var(--red);color:var(--red)}
+
+/* ============ SKILLS ============ */
+.skill-row{border-bottom:1px solid rgba(255,255,255,.08);padding:1.1rem 0}
+.skill-bar{height:3px;background:rgba(255,255,255,.08);position:relative;overflow:hidden;margin-top:.6rem}
+.skill-fill{height:100%;width:0;background:var(--white);transition:width 1.4s cubic-bezier(.2,.8,.2,1)}
+.skill-fill.red{background:var(--red)}
+.kaboom{color:var(--red);position:relative;display:inline-block}
+.kaboom:hover{animation:shake .35s ease infinite}
+@keyframes shake{0%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(-2px,1px) rotate(-1deg)}75%{transform:translate(2px,-1px) rotate(1deg)}}
+
+/* ============ CONTACT ============ */
+.social-card{border:1px solid rgba(255,255,255,.12);padding:2rem;text-decoration:none;
+  color:var(--white);display:block;transition:all .4s cubic-bezier(.2,.8,.2,1);position:relative;overflow:hidden}
+.social-card:hover{border-color:#fff;background:rgba(255,255,255,.04);transform:translateY(-4px)}
+.social-card .arrow{transition:transform .4s}
+.social-card:hover .arrow{transform:translate(4px,-4px)}
+
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:#0a0a0a}
+::-webkit-scrollbar-thumb{background:#2a2a2a;border:2px solid #0a0a0a}
+::-webkit-scrollbar-thumb:hover{background:#444}
+
+@media(max-width:768px){
+  .photo-wrap.hide-m{display:none}
+  .section-num{font-size:5rem}
+}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div><div id="cursorDot"></div>
+<div class="grain-overlay"></div>
+<div class="noise-dots"></div>
+<div class="vignette"></div>
+
+<!-- LINK FALLBACK TOAST -->
+<div id="linkToast" class="hidden font-mono2">
+  <span class="text-[.6rem] tracking-[.25em] uppercase" style="color:rgba(255,255,255,.7)">
+    popup blocked by this preview <span id="toastState" style="color:var(--red)"></span>
+  </span>
+  <code id="toastUrl"></code>
+  <span class="text-[.55rem] tracking-[.2em] uppercase" style="color:rgba(255,255,255,.35)">open it in a normal tab — it works there ✓</span>
+</div>
+
+<!-- ================= GATE / ENTRY ================= -->
+<div id="gate">
+  <canvas id="gateCanvas"></canvas>
+  <div class="gate-label" style="top:1.5rem;left:1.5rem">portfolio // v1.1</div>
+  <div class="gate-label" style="top:1.5rem;right:1.5rem">monochrome edition</div>
+  <div class="gate-label" style="bottom:1.5rem;left:1.5rem">code — eat — sleep</div>
+  <div class="gate-label" style="bottom:1.5rem;right:1.5rem">est. first year</div>
+  <div class="gate-corner" style="top:1.2rem;left:1.2rem;border-top:1px solid;border-left:1px solid"></div>
+  <div class="gate-corner" style="top:1.2rem;right:1.2rem;border-top:1px solid;border-right:1px solid"></div>
+  <div class="gate-corner" style="bottom:1.2rem;left:1.2rem;border-bottom:1px solid;border-left:1px solid"></div>
+  <div class="gate-corner" style="bottom:1.2rem;right:1.2rem;border-bottom:1px solid;border-right:1px solid"></div>
+  <div class="gate-inner" id="gateInner">
+    <div class="gate-sub font-mono2" style="margin-bottom:1.2rem">@chaudharyjayy presents</div>
+    <h1 class="gate-title font-display">JAY<br>CHAUDHARY</h1>
+    <div class="gate-sub font-mono2" style="margin-top:1.2rem">a portfolio in monochrome</div>
+    <button id="enterBtn"><span>[ click to enter ]</span></button>
+  </div>
+  <div class="gate-hint font-mono2">move your mouse — the void moves back</div>
+</div>
+
+<!-- ================= NAV ================= -->
+<nav id="navbar" class="fixed top-0 left-0 w-full z-[100] px-6 md:px-12 py-5 flex justify-between items-center">
+  <a href="#home" class="flex items-baseline gap-2" style="text-decoration:none;color:#fff">
+    <span class="font-display text-xl tracking-widest uppercase">JAY<span style="color:var(--red)">.</span></span>
+    <span class="hidden md:inline font-mono2 text-[.55rem] tracking-[.2em] opacity-40">chaudharyjayy.github.io</span>
+  </a>
+  <div class="hidden md:flex gap-8 font-mono2">
+    <a href="#home" class="nav-link" style="text-decoration:none;color:#fff">Home</a>
+    <a href="#about" class="nav-link" style="text-decoration:none;color:#fff">About</a>
+    <a href="#archive" class="nav-link" style="text-decoration:none;color:#fff">Archive</a>
+    <a href="#project" class="nav-link" style="text-decoration:none;color:#fff">Project</a>
+    <a href="#skills" class="nav-link" style="text-decoration:none;color:#fff">Skills</a>
+    <a href="#contact" class="nav-link" style="text-decoration:none;color:#fff">Contact</a>
+  </div>
+  <button id="menuBtn" class="md:hidden" aria-label="menu">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
+  </button>
+</nav>
+
+<div id="mobileMenu" class="fixed inset-0 bg-black z-[99] flex-col items-center justify-center gap-7 hidden">
+  <a href="#home" class="font-display text-3xl tracking-widest mobile-link" style="text-decoration:none;color:#fff">HOME</a>
+  <a href="#about" class="font-display text-3xl tracking-widest mobile-link" style="text-decoration:none;color:#fff">ABOUT</a>
+  <a href="#archive" class="font-display text-3xl tracking-widest mobile-link" style="text-decoration:none;color:#fff">ARCHIVE</a>
+  <a href="#project" class="font-display text-3xl tracking-widest mobile-link" style="text-decoration:none;color:#fff">PROJECT</a>
+  <a href="#skills" class="font-display text-3xl tracking-widest mobile-link" style="text-decoration:none;color:#fff">SKILLS</a>
+  <a href="#contact" class="font-display text-3xl tracking-widest mobile-link" style="text-decoration:none;color:#fff">CONTACT</a>
+  <button id="closeMenu" class="absolute top-6 right-6" aria-label="close">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+  </button>
+</div>
+
+<!-- ================= HERO ================= -->
+<section id="home" class="relative min-h-screen flex items-center justify-center overflow-hidden">
+  <canvas id="heroCanvas"></canvas>
+
+  <div class="photo-wrap" data-depth="28" style="left:5%;top:20%;width:150px">
+    <div class="photo tilt" style="height:190px">
+      <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1d1957cbc-3ea2-4ea4-8f53-3bd7e832a4ae.png" alt="the eyes">
+      <div class="photo-tag">fig.01 — the eyes</div>
+    </div>
+  </div>
+  <div class="photo-wrap hide-m" data-depth="-40" style="right:6%;top:16%;width:140px">
+    <div class="photo tilt" style="height:175px">
+      <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/13ad44b6b-c87f-4353-b64f-94657ab04e0a.png" alt="skull">
+      <div class="photo-tag">fig.02 — memento</div>
+    </div>
+  </div>
+  <div class="photo-wrap" data-depth="45" style="right:10%;bottom:14%;width:160px">
+    <div class="photo tilt" style="height:200px">
+      <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/18d45a36f-f65d-47b1-a1ca-aa158d85ba68.png" alt="seraphim">
+      <div class="photo-tag">fig.03 — seraphim</div>
+    </div>
+  </div>
+  <div class="photo-wrap hide-m" data-depth="-25" style="left:9%;bottom:12%;width:150px">
+    <div class="photo tilt" style="height:185px">
+      <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/10365f0ff-60fd-4e3a-8a69-f76d7d5169b3.png" alt="falling">
+      <div class="photo-tag">fig.04 — lost in thought</div>
+    </div>
+  </div>
+
+  <div class="relative z-[4] text-center px-4" id="heroContent">
+    <div class="font-mono2 text-[.65rem] tracking-[.5em] uppercase opacity-50 mb-6 hero-el">jay chaudhary // bio student larping into tech</div>
+    <h1 class="hero-title font-display hero-el">
+      <span class="block">JAY</span>
+      <span class="block hero-stroke">CHAUDHARY</span>
+    </h1>
+    <div class="divider w-40 mx-auto my-8 hero-el"></div>
+    <p class="font-mono2 text-xs md:text-sm tracking-[.3em] uppercase opacity-60 hero-el">
+      developer<span style="color:var(--red)"> ✦ </span>dreamer<span style="color:var(--red)"> ✦ </span>bug collector
+    </p>
+    <div class="mt-10 flex flex-wrap gap-4 justify-center hero-el">
+      <a href="#project" class="btn-solid">the one project ↓</a>
+      <a href="#about" class="btn-ghost">who is this guy</a>
+    </div>
+  </div>
+
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-[4] opacity-40" style="animation:blinkHint 2.2s ease-in-out infinite">
+    <svg width="18" height="28" viewBox="0 0 18 28" fill="none" stroke="white" stroke-width="1"><rect x="1" y="1" width="16" height="26" rx="8"/><line x1="9" y1="7" x2="9" y2="13"><animate attributeName="y1" values="7;11;7" dur="2s" repeatCount="indefinite"/><animate attributeName="y2" values="13;17;13" dur="2s" repeatCount="indefinite"/></line></svg>
+  </div>
+</section>
+
+<!-- ================= MARQUEE ================= -->
+<div class="marquee relative z-[4] bg-black">
+  <div class="marquee-track">
+    <span>jay chaudhary</span><span class="red">✦</span><span>the eyes</span><span class="red">✦</span>
+    <span>insomniac</span><span class="red">✦</span><span>seraphim</span><span class="red">✦</span>
+    <span>lost in thought</span><span class="red">✦</span><span>rest in ecstasy</span><span class="red">✦</span>
+    <span>they never lie</span><span class="red">✦</span>
+    <span>jay chaudhary</span><span class="red">✦</span><span>the eyes</span><span class="red">✦</span>
+    <span>insomniac</span><span class="red">✦</span><span>seraphim</span><span class="red">✦</span>
+    <span>lost in thought</span><span class="red">✦</span><span>rest in ecstasy</span><span class="red">✦</span>
+    <span>they never lie</span><span class="red">✦</span>
+  </div>
+</div>
+
+<!-- ================= ABOUT ================= -->
+<section id="about" class="relative py-28 md:py-36 px-6 md:px-12 lg:px-24 overflow-hidden">
+  <div class="section-num">01</div>
+  <div class="max-w-6xl mx-auto relative z-[4]">
+    <div class="section-label mb-4 reveal">// 01 — about</div>
+    <h2 class="font-display text-5xl md:text-7xl uppercase mb-14 reveal">Who Am I<span style="color:var(--red)">?</span></h2>
+
+    <div class="grid md:grid-cols-5 gap-12 items-start">
+      <div class="md:col-span-3 reveal">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="terminal-dot r"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
+            <span style="margin-left:.6rem">jay@chaudharyjayy:~$ cat about_me.txt</span>
+          </div>
+          <div class="p-6 md:p-8 font-mono2 text-sm md:text-base leading-relaxed" style="color:rgba(255,255,255,.85)">
+            <span style="opacity:.4">&gt;</span> i am not a professional dev yet this is my portfolio pls dont mind if there are bugs im a bio student larping my way to tech ;) , and ive worked on a hackathon i guess its almost selected in the first year haha<span class="caret"></span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 mt-8">
+          <div class="border border-white/10 p-4 text-center reveal">
+            <div class="font-display text-3xl">1</div>
+            <div class="font-mono2 text-[.55rem] tracking-[.25em] uppercase opacity-40 mt-1">project shipped</div>
+          </div>
+          <div class="border border-white/10 p-4 text-center reveal">
+            <div class="font-display text-3xl">1</div>
+            <div class="font-mono2 text-[.55rem] tracking-[.25em] uppercase opacity-40 mt-1">hackathon (almost)</div>
+          </div>
+          <div class="border border-white/10 p-4 text-center reveal">
+            <div class="font-display text-3xl" style="color:var(--red)">∞</div>
+            <div class="font-mono2 text-[.55rem] tracking-[.25em] uppercase opacity-40 mt-1">bugs introduced</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="md:col-span-2 relative reveal">
+        <div class="photo tilt mx-auto" style="width:260px;height:330px">
+          <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1aa8f11c6-31b8-4c8b-9ffc-161148074c3c.png" alt="statue">
+          <div class="photo-tag">fig.05 — rest in ecstasy</div>
+        </div>
+        <div class="rated-badge absolute -top-6 -right-2 md:right-6 bg-black" style="transform:rotate(6deg)">
+          <div class="text-[.6rem] tracking-widest">RATED</div>
+          <div class="text-3xl">M</div>
+          <div class="text-[.5rem] tracking-widest">FOR MADNESS</div>
+        </div>
+        <div class="photo-wrap" data-depth="18" style="position:relative;display:inline-block;width:110px;margin-top:2rem;margin-left:-1rem">
+          <div class="photo tilt" style="height:130px">
+            <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1d1957cbc-3ea2-4ea4-8f53-3bd7e832a4ae.png" alt="eyes small">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ARCHIVE ================= -->
+<section id="archive" class="relative py-28 md:py-36 px-6 md:px-12 lg:px-24 overflow-hidden">
+  <div class="section-num">02</div>
+  <div class="max-w-6xl mx-auto relative z-[4]">
+    <div class="section-label mb-4 reveal">// 02 — the archive</div>
+    <h2 class="font-display text-5xl md:text-7xl uppercase mb-4 reveal">The Archive</h2>
+    <p class="font-mono2 text-xs opacity-40 mb-16 reveal">hover the relics. they hover back.</p>
+
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-4">
+      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1d1957cbc-3ea2-4ea4-8f53-3bd7e832a4ae.png" alt="eyes"><div class="photo-tag">the eyes</div></div></div>
+      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/13ad44b6b-c87f-4353-b64f-94657ab04e0a.png" alt="skull"><div class="photo-tag">memento</div></div></div>
+      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/18d45a36f-f65d-47b1-a1ca-aa158d85ba68.png" alt="seraphim"><div class="photo-tag">seraphim</div></div></div>
+      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/10365f0ff-60fd-4e3a-8a69-f76d7d5169b3.png" alt="falling"><div class="photo-tag">lost in thought</div></div></div>
+      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1aa8f11c6-31b8-4c8b-9ffc-161148074c3c.png" alt="statue"><div class="photo-tag">rest in ecstasy</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PROJECT ================= -->
+<section id="project" class="relative py-28 md:py-36 px-6 md:px-12 lg:px-24 overflow-hidden">
+  <div class="section-num">03</div>
+  <div class="max-w-5xl mx-auto relative z-[4]">
+    <div class="section-label mb-4 reveal">// 03 — the project</div>
+    <h2 class="font-display text-5xl md:text-7xl uppercase mb-14 reveal">One &amp; Only<span style="color:var(--red)">.</span></h2>
+
+    <div class="project-card reveal">
+      <div class="shine"></div>
+      <div class="grid md:grid-cols-2">
+        <div class="relative overflow-hidden" style="min-height:280px">
+          <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/10365f0ff-60fd-4e3a-8a69-f76d7d5169b3.png" alt="project" class="absolute inset-0 w-full h-full object-cover" style="filter:grayscale(1) contrast(1.2);pointer-events:none">
+          <div class="absolute inset-0" style="background:linear-gradient(90deg,transparent 40%,#0d0d0d 100%);pointer-events:none"></div>
+          <!-- FIXED: this used to be a plain <div> label, now it's a real link -->
+          <a href="https://sahitigov-ddagdaku.manus.space/" target="_blank" rel="noopener noreferrer" class="demo-tag">● live demo ↗</a>
+        </div>
+        <div class="p-8 md:p-12">
+          <div class="font-mono2 text-[.6rem] tracking-[.35em] uppercase opacity-40 mb-3">project 001 / 001 — hackathon build</div>
+          <h3 class="font-display text-4xl md:text-5xl uppercase mb-5">Sahiti Gov</h3>
+          <p class="font-mono2 text-sm leading-relaxed opacity-60 mb-4">
+            the one project i've actually worked on. a hackathon build from my first year —
+            almost got selected haha. it's live, it works (mostly), and it's the only thing
+            keeping the "projects" section of this portfolio from being empty. respect it.
+          </p>
+          <div class="flex flex-wrap gap-2 mb-8">
+            <span class="font-mono2 text-[.55rem] tracking-[.2em] uppercase border border-white/15 px-3 py-1 opacity-60">hackathon</span>
+            <span class="font-mono2 text-[.55rem] tracking-[.2em] uppercase border border-white/15 px-3 py-1 opacity-60">first year</span>
+            <span class="font-mono2 text-[.55rem] tracking-[.2em] uppercase border border-white/15 px-3 py-1 opacity-60">almost selected</span>
+            <span class="font-mono2 text-[.55rem] tracking-[.2em] uppercase border px-3 py-1" style="border-color:rgba(224,27,27,.5);color:var(--red)">live</span>
+          </div>
+          <div class="flex flex-wrap gap-4 items-center">
+            <a href="https://sahitigov-ddagdaku.manus.space/" target="_blank" rel="noopener noreferrer" class="btn-solid">
+              visit live site
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+            </a>
+            <span class="font-mono2 text-[.6rem] tracking-[.2em] uppercase opacity-30">that's it. that's the list.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SKILLS ================= -->
+<section id="skills" class="relative py-28 md:py-36 px-6 md:px-12 lg:px-24 overflow-hidden">
+  <div class="section-num">04</div>
+  <div class="max-w-4xl mx-auto relative z-[4]">
+    <div class="section-label mb-4 reveal">// 04 — skills</div>
+    <h2 class="font-display text-4xl md:text-6xl uppercase leading-tight mb-14 reveal">
+      Lil bit of this.<br>Lil bit of that.<br>And <span class="kaboom">KABOOM</span> —<br>AI takes my job.
+    </h2>
+
+    <div class="reveal">
+      <div class="skill-row">
+        <div class="flex justify-between font-mono2 text-xs tracking-[.2em] uppercase"><span>lil bit of HTML / CSS</span><span class="opacity-40">65%</span></div>
+        <div class="skill-bar"><div class="skill-fill" data-w="65"></div></div>
+      </div>
+      <div class="skill-row">
+        <div class="flex justify-between font-mono2 text-xs tracking-[.2em] uppercase"><span>lil bit of JavaScript</span><span class="opacity-40">50%</span></div>
+        <div class="skill-bar"><div class="skill-fill" data-w="50"></div></div>
+      </div>
+      <div class="skill-row">
+        <div class="flex justify-between font-mono2 text-xs tracking-[.2em] uppercase"><span>lil bit of Python</span><span class="opacity-40">45%</span></div>
+        <div class="skill-bar"><div class="skill-fill" data-w="45"></div></div>
+      </div>
+      <div class="skill-row">
+        <div class="flex justify-between font-mono2 text-xs tracking-[.2em] uppercase"><span>lil bit of biology (the actual degree)</span><span class="opacity-40">80%</span></div>
+        <div class="skill-bar"><div class="skill-fill" data-w="80"></div></div>
+      </div>
+      <div class="skill-row">
+        <div class="flex justify-between font-mono2 text-xs tracking-[.2em] uppercase"><span>googling errors / stackoverflow cosplay</span><span class="opacity-40">95%</span></div>
+        <div class="skill-bar"><div class="skill-fill" data-w="95"></div></div>
+      </div>
+      <div class="skill-row">
+        <div class="flex justify-between font-mono2 text-xs tracking-[.2em] uppercase"><span class="kaboom">kaboom (breaking things)</span><span class="opacity-40">100%</span></div>
+        <div class="skill-bar"><div class="skill-fill red" data-w="100"></div></div>
+      </div>
+      <div class="skill-row" style="border-bottom:none">
+        <div class="flex justify-between font-mono2 text-xs tracking-[.2em] uppercase"><span>AI taking my job</span><span class="opacity-40">99%</span></div>
+        <div class="skill-bar"><div class="skill-fill red" data-w="99"></div></div>
+      </div>
+    </div>
+
+    <div class="mt-14 border border-white/10 p-6 font-mono2 text-xs leading-relaxed opacity-50 reveal">
+      * skill levels are self-reported by a bio student. peer review pending since first year.
+      the remaining 1% of "AI takes my job" is me pretending i wrote the code myself.
+    </div>
+  </div>
+</section>
+
+<!-- ================= QUOTE ================= -->
+<section class="relative py-28 px-6 overflow-hidden">
+  <div class="max-w-4xl mx-auto text-center relative z-[4] reveal">
+    <div class="font-display text-7xl opacity-10 mb-4">"</div>
+    <blockquote class="font-display text-3xl md:text-5xl uppercase leading-tight mb-8">
+      Don't believe<br>everything you think
+    </blockquote>
+    <div class="divider w-24 mx-auto mb-6"></div>
+    <div class="font-mono2 text-[.6rem] tracking-[.4em] uppercase opacity-30">— lost in thought, daily poster 256</div>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section id="contact" class="relative py-28 md:py-36 px-6 md:px-12 lg:px-24 overflow-hidden">
+  <div class="section-num">05</div>
+  <div class="max-w-4xl mx-auto relative z-[4]">
+    <div class="section-label mb-4 reveal">// 05 — contact</div>
+    <h2 class="font-display text-5xl md:text-7xl uppercase mb-6 reveal">Find Me<span style="color:var(--red)">.</span></h2>
+    <p class="font-mono2 text-sm opacity-40 mb-14 reveal">the eyes are always watching. mostly mine, staring at compile errors.</p>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      <a href="https://github.com/chaudharyjayy" target="_blank" rel="noopener noreferrer" class="social-card reveal">
+        <div class="flex items-start justify-between mb-6">
+          <svg class="w-10 h-10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <svg class="arrow w-5 h-5 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+        </div>
+        <div class="font-display text-2xl uppercase mb-1">GitHub</div>
+        <div class="font-mono2 text-xs opacity-40">github.com/chaudharyjayy — the code cave</div>
+      </a>
+      <a href="https://www.instagram.com/jayhunyaar/" target="_blank" rel="noopener noreferrer" class="social-card reveal">
+        <div class="flex items-start justify-between mb-6">
+          <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+          <svg class="arrow w-5 h-5 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+        </div>
+        <div class="font-display text-2xl uppercase mb-1">Instagram</div>
+        <div class="font-mono2 text-xs opacity-40">instagram.com/jayhunyaar — behind the scenes</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer class="relative py-10 px-6 md:px-12 border-t border-white/10 bg-black z-[4]">
+  <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+    <div class="font-display text-sm tracking-widest uppercase opacity-50">© 2024 JAY CHAUDHARY — built in the dark</div>
+    <div class="font-mono2 text-[.55rem] tracking-[.3em] uppercase opacity-30 text-center">deploy @ chaudharyjayy.github.io — bugs are features.</div>
+    <div class="flex gap-5">
+      <a href="https://github.com/chaudharyjayy" target="_blank" rel="noopener noreferrer" class="opacity-40 hover:opacity-100 transition-opacity" aria-label="github">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      </a>
+      <a href="https://www.instagram.com/jayhunyaar/" target="_blank" rel="noopener noreferrer" class="opacity-40 hover:opacity-100 transition-opacity" aria-label="instagram">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+      </a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const IMG = [
+  'https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1d1957cbc-3ea2-4ea4-8f53-3bd7e832a4ae.png',
+  'https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/13ad44b6b-c87f-4353-b64f-94657ab04e0a.png',
+  'https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/18d45a36f-f65d-47b1-a1ca-aa158d85ba68.png',
+  'https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/10365f0ff-60fd-4e3a-8a69-f76d7d5169b3.png',
+  'https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1aa8f11c6-31b8-4c8b-9ffc-161148074c3c.png'
+];
+
+let mouseNX = 0, mouseNY = 0;
+document.addEventListener('mousemove', e => {
+  mouseNX = (e.clientX / window.innerWidth) * 2 - 1;
+  mouseNY = -(e.clientY / window.innerHeight) * 2 + 1;
+});
+
+/* ============================================================
+   EXTERNAL LINKS — bulletproof opener (the main fix)
+   tries: new tab → same tab → top frame → clipboard + toast
+============================================================ */
+let toastTimer = null;
+function fallbackCopy(t){
+  const ta = document.createElement('textarea');
+  ta.value = t; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false; try{ ok = document.execCommand('copy'); }catch(e){}
+  ta.remove(); return ok;
+}
+function copyText(t){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(t).then(()=>true).catch(()=>fallbackCopy(t));
+  }
+  return Promise.resolve(fallbackCopy(t));
+}
+function showLinkToast(url){
+  const toast = document.getElementById('linkToast');
+  document.getElementById('toastUrl').textContent = url;
+  toast.classList.remove('hidden');
+  copyText(url).then(ok => {
+    document.getElementById('toastState').textContent = ok ? '— link copied to clipboard ✓' : '— copy the link manually:';
+  });
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toast.classList.add('hidden'), 6000);
+}
+function initExternalLinks(){
+  document.querySelectorAll('a[href^="http"]').forEach(a => {
+    a.addEventListener('click', e => {
+      // let ctrl/cmd/shift/middle-click behave natively
+      if(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      e.preventDefault();
+      const url = a.getAttribute('href');
+      // 1) new tab
+      let w = null;
+      try { w = window.open(url, '_blank'); if(w){ try{ w.opener = null; }catch(err){} return; } } catch(err){}
+      // 2) same tab
+      try { window.location.assign(url); return; } catch(err){}
+      // 3) escape iframe / top frame
+      try { if(window.top !== window.self){ window.top.location.assign(url); return; } } catch(err){}
+      // 4) last resort: copy + toast
+      showLinkToast(url);
+    });
+  });
+}
+
+/* ============================================================
+   GATE — 3D ENTRY SCENE
+============================================================ */
+let gateRAF = null, gateEntered = false;
+function killGate(){
+  const gate = document.getElementById('gate');
+  gate.style.opacity = '0';
+  gate.style.pointerEvents = 'none';
+  gate.style.visibility = 'hidden';
+  gate.style.display = 'none';
+  if(gateRAF) cancelAnimationFrame(gateRAF);
+}
+function initGate(){
+  const canvas = document.getElementById('gateCanvas');
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x050505, 8, 22);
+  const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, .1, 100);
+  camera.position.set(0, 0, 11);
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+  const ring = new THREE.Group();
+  scene.add(ring);
+
+  const loader = new THREE.TextureLoader();
+  loader.setCrossOrigin('anonymous');
+  const planes = [];
+  IMG.forEach((url, i) => {
+    loader.load(url, tex => {
+      const mat = new THREE.MeshBasicMaterial({map:tex, transparent:true, opacity:.85, side:THREE.DoubleSide});
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), mat);
+      const a = (i / IMG.length) * Math.PI * 2;
+      mesh.position.set(Math.cos(a)*5.5, (i%2===0? 1.6 : -1.8), Math.sin(a)*5.5);
+      mesh.lookAt(0, mesh.position.y, 0);
+      mesh.userData = {baseY: mesh.position.y, phase: i*1.3, mat};
+      ring.add(mesh);
+      planes.push(mesh);
+    });
+  });
+
+  const ico = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(2.1, 1),
+    new THREE.MeshBasicMaterial({color:0xffffff, wireframe:true, transparent:true, opacity:.14})
+  );
+  scene.add(ico);
+  const octa = new THREE.Mesh(
+    new THREE.OctahedronGeometry(1.1, 0),
+    new THREE.MeshBasicMaterial({color:0xffffff, wireframe:true, transparent:true, opacity:.25})
+  );
+  scene.add(octa);
+
+  const pGeo = new THREE.BufferGeometry();
+  const pCount = 600, pos = new Float32Array(pCount*3);
+  for(let i=0;i<pCount*3;i++) pos[i] = (Math.random()-.5)*30;
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(pGeo, new THREE.PointsMaterial({size:.025,color:0xffffff,transparent:true,opacity:.35})));
+
+  let t = 0;
+  (function loop(){
+    gateRAF = requestAnimationFrame(loop);
+    t += .008;
+    ring.rotation.y += .0022;
+    ring.rotation.x += (mouseNY*.12 - ring.rotation.x)*.03;
+    planes.forEach(p => { p.position.y = p.userData.baseY + Math.sin(t*2 + p.userData.phase)*.35; });
+    ico.rotation.x += .0025; ico.rotation.y += .004;
+    octa.rotation.x -= .005; octa.rotation.y -= .003;
+    camera.position.x += (mouseNX*.8 - camera.position.x)*.04;
+    camera.position.y += (mouseNY*.5 - camera.position.y)*.04;
+    camera.lookAt(0,0,0);
+    renderer.render(scene, camera);
+  })();
+
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  const enter = () => {
+    if(gateEntered) return;
+    gateEntered = true;
+    // fallback if GSAP CDN failed — never trap the user behind the gate
+    if(!window.gsap){ killGate(); startHeroReveal(); return; }
+    const tl = gsap.timeline({onComplete: () => { killGate(); startHeroReveal(); }});
+    tl.to('#gateInner', {scale:1.6, opacity:0, duration:.7, ease:'power3.in'}, 0)
+      .to(camera.position, {z:1.2, duration:1.5, ease:'power3.in'}, 0)
+      .to(planes.map(p=>p.userData.mat), {opacity:0, duration:1.1, ease:'power2.in'}, .2)
+      .to(ico.scale, {x:6,y:6,z:6, duration:1.4, ease:'power3.in'}, .1)
+      .to(octa.scale, {x:8,y:8,z:8, duration:1.4, ease:'power3.in'}, .1)
+      .to('#gate', {opacity:0, duration:.6, ease:'power2.inOut'}, 1.2);
+  };
+  document.getElementById('enterBtn').addEventListener('click', enter);
+  addEventListener('keydown', e => { if(e.key === 'Enter' && !gateEntered) enter(); });
+}
+
+/* ============================================================
+   HERO BACKGROUND 3D
+============================================================ */
+function initHero(){
+  const canvas = document.getElementById('heroCanvas');
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, .1, 100);
+  camera.position.z = 6;
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+  const ico = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(2.6, 1),
+    new THREE.MeshBasicMaterial({color:0xffffff, wireframe:true, transparent:true, opacity:.07})
+  );
+  ico.position.set(0,0,-2); scene.add(ico);
+  const knot = new THREE.Mesh(
+    new THREE.TorusKnotGeometry(1.6,.35,120,16),
+    new THREE.MeshBasicMaterial({color:0xffffff, wireframe:true, transparent:true, opacity:.05})
+  );
+  knot.position.set(-5,2,-6); scene.add(knot);
+  const dode = new THREE.Mesh(
+    new THREE.DodecahedronGeometry(1.4,0),
+    new THREE.MeshBasicMaterial({color:0xffffff, wireframe:true, transparent:true, opacity:.06})
+  );
+  dode.position.set(5,-2,-5); scene.add(dode);
+
+  const pGeo = new THREE.BufferGeometry();
+  const N = 700, pos = new Float32Array(N*3);
+  for(let i=0;i<N*3;i++) pos[i]=(Math.random()-.5)*24;
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(pGeo, new THREE.PointsMaterial({size:.02,color:0xffffff,transparent:true,opacity:.3})));
+
+  (function loop(){
+    requestAnimationFrame(loop);
+    ico.rotation.x += .0015; ico.rotation.y += .0025;
+    knot.rotation.x += .002; knot.rotation.y += .0015;
+    dode.rotation.y += .003;
+    camera.position.x += (mouseNX*.6 - camera.position.x)*.03;
+    camera.position.y += (mouseNY*.35 - camera.position.y)*.03;
+    camera.lookAt(0,0,0);
+    renderer.render(scene, camera);
+  })();
+
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+}
+
+/* ============================================================
+   HERO REVEAL AFTER GATE
+============================================================ */
+function startHeroReveal(){
+  if(window.gsap){
+    gsap.fromTo('.hero-el',
+      {opacity:0, y:60, rotateX:-15},
+      {opacity:1, y:0, rotateX:0, duration:1, stagger:.12, ease:'power3.out'});
+    gsap.fromTo('.photo-wrap',
+      {opacity:0, scale:.6},
+      {opacity:1, scale:1, duration:1.2, stagger:.15, ease:'power3.out', delay:.3});
+  } else {
+    document.querySelectorAll('.hero-el, .photo-wrap').forEach(el => {
+      el.style.opacity = 1; el.style.transform = 'none';
+    });
+  }
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+}
+
+/* ============================================================
+   FLOATING PARALLAX + 3D TILT
+============================================================ */
+function initFloatTilt(){
+  const wraps = document.querySelectorAll('.photo-wrap[data-depth]');
+  let cx=0, cy=0;
+  (function floatLoop(){
+    requestAnimationFrame(floatLoop);
+    cx += (mouseNX-cx)*.06; cy += (mouseNY-cy)*.06;
+    wraps.forEach(w => {
+      const d = parseFloat(w.dataset.depth);
+      w.style.transform = `translate3d(${cx*d}px, ${-cy*d}px, 0)`;
+    });
+  })();
+
+  document.querySelectorAll('.tilt').forEach(el => {
+    const MAX = 14;
+    el.addEventListener('mousemove', e => {
+      const r = el.getBoundingClientRect();
+      const px = (e.clientX - r.left)/r.width - .5;
+      const py = (e.clientY - r.top)/r.height - .5;
+      el.style.transition = 'transform .08s linear';
+      el.style.transform = `perspective(900px) rotateY(${px*MAX}deg) rotateX(${-py*MAX}deg) translateZ(26px)`;
+    });
+    el.addEventListener('mouseleave', () => {
+      el.style.transition = 'transform .7s cubic-bezier(.2,.8,.2,1)';
+      el.style.transform = 'perspective(900px) rotateY(0deg) rotateX(0deg) translateZ(0)';
+    });
+  });
+}
+
+/* ============================================================
+   SCROLL REVEAL + SKILL BARS
+============================================================ */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    if(en.isIntersecting){
+      en.target.classList.add('active');
+      en.target.querySelectorAll('.skill-fill').forEach(f => { f.style.width = f.dataset.w + '%'; });
+      observer.unobserve(en.target);
+    }
+  });
+}, {threshold:.15});
+
+/* ============================================================
+   CURSOR
+============================================================ */
+function initCursor(){
+  const cur = document.getElementById('cursor');
+  const dot = document.getElementById('cursorDot');
+  let x=0,y=0,cx2=0,cy2=0;
+  document.addEventListener('mousemove', e => { x=e.clientX; y=e.clientY;
+    dot.style.left=(x-2)+'px'; dot.style.top=(y-2)+'px'; });
+  (function loop(){
+    requestAnimationFrame(loop);
+    cx2 += (x-cx2)*.16; cy2 += (y-cy2)*.16;
+    cur.style.left=(cx2-11)+'px'; cur.style.top=(cy2-11)+'px';
+  })();
+  document.querySelectorAll('a, button, .photo, .archive-card, .project-card').forEach(el => {
+    el.addEventListener('mouseenter', () => cur.classList.add('hover'));
+    el.addEventListener('mouseleave', () => cur.classList.remove('hover'));
+  });
+}
+
+/* ============================================================
+   NAV / MENU / SCROLL FX
+============================================================ */
+function initNav(){
+  const nav = document.getElementById('navbar');
+  addEventListener('scroll', () => {
+    if(scrollY > 60){ nav.style.background='rgba(8,8,8,.92)'; nav.style.backdropFilter='blur(12px)'; nav.style.borderBottom='1px solid rgba(255,255,255,.06)'; }
+    else { nav.style.background='transparent'; nav.style.backdropFilter='none'; nav.style.borderBottom='none'; }
+  });
+  const menu = document.getElementById('mobileMenu');
+  document.getElementById('menuBtn').addEventListener('click', () => { menu.classList.remove('hidden'); menu.classList.add('flex'); });
+  document.getElementById('closeMenu').addEventListener('click', () => { menu.classList.add('hidden'); menu.classList.remove('flex'); });
+  menu.querySelectorAll('.mobile-link').forEach(l => l.addEventListener('click', () => { menu.classList.add('hidden'); menu.classList.remove('flex'); }));
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const sel = a.getAttribute('href');
+      if(sel.length > 1){
+        const t = document.querySelector(sel);
+        if(t){ e.preventDefault(); t.scrollIntoView({behavior:'smooth'}); }
+      }
+    });
+  });
+}
+
+/* ============================================================
+   BOOT
+============================================================ */
+initGate();
+initHero();
+initFloatTilt();
+initCursor();
+initNav();
+initExternalLinks();
+</script>
+</body>
+</html>
