@@ -1,0 +1,116 @@
+============================================================
+.gitignore — for jay's monochrome portfolio repo
+rule #1: ignore the junk
+rule #2: never ignore index.html (it IS the portfolio)
+rule #3: snacks cannot be ignored, only consumed
+============================================================
+
+---------- OS JUNK (the computer's own bugs) ----------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Thumbs.db:alternate
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+---------- EDITOR / IDE JUNK ----------
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.history/
+*.code-workspace
+
+---------- NODE / NPM (if you ever run netlify-cli etc.) ----------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.npm/
+.npmrc
+
+---------- ENV / SECRETS (the eyes see everything. github shouldn't) ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+---------- BUILD / CACHE JUNK ----------
+dist/
+build/
+.cache/
+.tmp/
+.tmp*/
+out/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+---------- NETLIFY / VERCEL LOCAL JUNK ----------
+.netlify/
+.netlify/
+.netlify-state.json
+.netlify/
+netlify.toml.bak
+.vercel/
+.netlify/
+
+---------- LOGS / CRASH DUMPS (my bugs' memoirs) ----------
+logs/
+*.log
+*.crash
+dump.rdb
+nohup.out
+
+---------- ARCHIVES / BACKUPS (future-me's problems) ----------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+backup/
+backups/
+*-old/
+*-copy/
+*_copy/
+*.bak
+
+---------- PYTHON (bio student side-quests) ----------
+pycache/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+---------- MISC ----------
+*.orig
+*.rej
+.cache-loader
+.eslintcache
+.stylelintcache
+.DS_Store
+
+---------- THE SACRED (do NOT ignore, ever) ----------
+!index.html
+!README.md
+!.github/
+
+---------- EMOTIONAL ----------
+light mode configs (we don't do that here)
+my ex's number
+the will to debug css at 3am (already lost, nothing to ignore)
