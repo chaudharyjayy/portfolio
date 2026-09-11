@@ -27,6 +27,7 @@ $RECYCLE.BIN/
 *~
 .history/
 *.code-workspace
+.my-bad-attendance-ratio
 
 ---------- NODE / NPM (if you ever run netlify-cli etc.) ----------
 node_modules/
