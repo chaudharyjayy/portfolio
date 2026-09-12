@@ -9,7 +9,19 @@
        shows a toast with the URL. Can never dead-click again.
   2. The "LIVE DEMO" tag on the project image was a <div> label, not a
      link. → FIXED: it is now a real <a> to the manus.space URL.
+  3. If the GSAP CDN ever fails, the ENTER button used to freeze the
+     gate over the whole page (making every button unclickable).
+     → FIXED: no-GSAP fallback removes the gate instantly.
+  4. Gate now also gets pointer-events:none + visibility:hidden after
+     entry, so it can never sit invisibly on top of your buttons.
 
+  DEPLOY (then links work 100% for everyone):
+    A) GITHUB PAGES: new repo named  chaudharyjayy.github.io
+       → upload as index.html → Settings → Pages → main → live at
+       https://chaudharyjayy.github.io
+    B) NETLIFY: app.netlify.com/drop → drag this file → rename site
+       to "jaychaudhary" → https://jaychaudhary.netlify.app
+=====================================================================
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -223,6 +235,146 @@ a,button{cursor:pointer}
   .photo-wrap.hide-m{display:none}
   .section-num{font-size:5rem}
 }
+
+/* ============ CD PLAYER DECK & DRAWER ============ */
+#deckToggleBtn{
+  position:fixed;bottom:1.5rem;right:1.5rem;z-index:9990;
+  background:rgba(10,10,10,.88);border:1px solid rgba(255,255,255,.25);
+  color:var(--white);padding:.6rem 1.15rem;display:flex;align-items:center;gap:.65rem;
+  backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,.85);
+  font-family:'Space Mono',monospace;font-size:.65rem;letter-spacing:.25em;text-transform:uppercase;
+  transition:all .3s cubic-bezier(.2,.8,.2,1);user-select:none;
+}
+#deckToggleBtn:hover{
+  border-color:var(--white);background:rgba(20,20,20,.98);transform:translateY(-2px);
+  box-shadow:0 12px 40px rgba(0,0,0,.9);
+}
+#deckToggleBtn .deck-dot{
+  width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);
+  transition:background .3s,box-shadow .3s;
+}
+#deckToggleBtn.playing .deck-dot{
+  background:var(--red);box-shadow:0 0 10px var(--red);
+  animation:deckPulse 1.6s infinite;
+}
+@keyframes deckPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+
+#deckBackdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
+  z-index:9995;opacity:0;pointer-events:none;transition:opacity .35s ease;
+}
+#deckBackdrop.open{opacity:1;pointer-events:auto}
+
+#deckDrawer{
+  position:fixed;top:0;right:0;height:100%;width:100%;max-width:620px;
+  background:#090909;border-left:1px solid rgba(255,255,255,.12);
+  z-index:9996;display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .38s cubic-bezier(.2,.8,.2,1);
+  box-shadow:-20px 0 60px rgba(0,0,0,.9);overflow:hidden;
+}
+#deckDrawer.open{transform:translateX(0)}
+
+.turntable{
+  position:relative;background:radial-gradient(circle at center, #161616 0%, #0c0c0c 100%);
+  border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;
+  user-select:none;touch-action:none;overflow:hidden;
+}
+.cd-disc{
+  width:190px;height:190px;border-radius:50%;
+  background:
+    radial-gradient(circle at center,
+      #090909 0%, #090909 11%,
+      #141414 11.5%, #141414 13%,
+      transparent 13.5%, transparent 28%,
+      #1f1f1f 28.5%, #0e0e0e 38%,
+      #242424 48%, #0e0e0e 58%,
+      #222222 68%, #0d0d0d 78%,
+      #242424 88%, #0b0b0b 98%,
+      #282828 100%),
+    conic-gradient(from 0deg,
+      rgba(255,255,255,.14) 0deg, rgba(255,255,255,.02) 45deg,
+      rgba(255,255,255,.18) 90deg, rgba(255,255,255,.02) 135deg,
+      rgba(255,255,255,.14) 180deg, rgba(255,255,255,.02) 225deg,
+      rgba(255,255,255,.18) 270deg, rgba(255,255,255,.02) 315deg,
+      rgba(255,255,255,.14) 360deg);
+  border:2px solid rgba(255,255,255,.2);
+  box-shadow:0 10px 40px rgba(0,0,0,.9), inset 0 0 20px rgba(0,0,0,.8);
+  position:relative;display:flex;align-items:center;justify-content:center;
+  cursor:grab;will-change:transform;touch-action:none;
+}
+.cd-disc:active{cursor:grabbing}
+.cd-disc-center{
+  width:64px;height:64px;border-radius:50%;background:#000;
+  border:2px solid var(--red);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;pointer-events:none;
+  box-shadow:0 0 15px rgba(224,27,27,.35);
+}
+.cd-disc-spindle{
+  width:14px;height:14px;border-radius:50%;background:#090909;
+  border:2px solid rgba(255,255,255,.5);
+}
+
+.tonearm{
+  position:absolute;top:10px;right:22px;width:12px;height:140px;
+  transform-origin:top right;transition:transform .4s cubic-bezier(.2,.8,.2,1);
+  pointer-events:none;z-index:4;
+}
+.tonearm-head{
+  width:10px;height:24px;background:#fff;border-radius:2px;
+  position:absolute;bottom:0;left:0;box-shadow:0 2px 6px rgba(0,0,0,.6);
+}
+.tonearm-rod{
+  position:absolute;top:10px;bottom:20px;left:4px;width:2px;background:rgba(255,255,255,.45);
+}
+.tonearm-base{
+  position:absolute;top:0;right:0;width:18px;height:18px;border-radius:50%;
+  background:#222;border:2px solid rgba(255,255,255,.3);
+}
+
+.deck-scrubber{
+  height:4px;background:rgba(255,255,255,.12);position:relative;
+  cursor:pointer;border-radius:2px;overflow:hidden;transition:height .15s ease;
+}
+.deck-scrubber-fill{
+  height:100%;width:0%;background:var(--red);transition:width .08s linear;
+}
+.deck-scrubber:hover{height:6px}
+
+.deck-track-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.05);
+  font-family:'Space Mono',monospace;font-size:.68rem;cursor:pointer;
+  transition:all .2s ease;
+}
+.deck-track-row:hover{
+  background:rgba(255,255,255,.03);color:#fff;
+}
+.deck-track-row.active{
+  background:rgba(224,27,27,.08);border-left:2px solid var(--red);
+  color:#fff;
+}
+.deck-track-row.active .t-num{color:var(--red)}
+
+.deck-lyric-line{
+  padding:.55rem 0;font-family:'Space Grotesk',sans-serif;font-size:.88rem;
+  line-height:1.45;color:rgba(255,255,255,.3);transition:all .25s ease;
+  border-left:2px solid transparent;padding-left:.65rem;
+}
+.deck-lyric-line.active{
+  color:var(--red);font-weight:700;border-left-color:var(--red);
+  transform:translateX(4px);font-size:.96rem;
+}
+
+@media(max-width:480px){
+  #deckDrawer{max-width:100%}
+  .cd-disc{width:150px;height:150px}
+  .cd-disc-center{width:50px;height:50px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .cd-disc{transform:none !important}
+  #deckBackdrop, #deckDrawer{transition:none !important}
+}
 </style>
 </head>
 <body>
@@ -393,7 +545,7 @@ a,button{cursor:pointer}
 
       <div class="md:col-span-2 relative reveal">
         <div class="photo tilt mx-auto" style="width:260px;height:330px">
-          <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1aa8f11c6-31b8-4c8b-9ffc-161148074c3c.png" alt="statue">
+          <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1aa8f11c6-31b8-4c8b-9ffc-161148074c3c.png" alt="statue" loading="lazy">
           <div class="photo-tag">fig.05 — rest in ecstasy</div>
         </div>
         <div class="rated-badge absolute -top-6 -right-2 md:right-6 bg-black" style="transform:rotate(6deg)">
@@ -403,7 +555,7 @@ a,button{cursor:pointer}
         </div>
         <div class="photo-wrap" data-depth="18" style="position:relative;display:inline-block;width:110px;margin-top:2rem;margin-left:-1rem">
           <div class="photo tilt" style="height:130px">
-            <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1d1957cbc-3ea2-4ea4-8f53-3bd7e832a4ae.png" alt="eyes small">
+            <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1d1957cbc-3ea2-4ea4-8f53-3bd7e832a4ae.png" alt="eyes small" loading="lazy">
           </div>
         </div>
       </div>
@@ -420,11 +572,11 @@ a,button{cursor:pointer}
     <p class="font-mono2 text-xs opacity-40 mb-16 reveal">hover the relics. they hover back.</p>
 
     <div class="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-4">
-      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1d1957cbc-3ea2-4ea4-8f53-3bd7e832a4ae.png" alt="eyes"><div class="photo-tag">the eyes</div></div></div>
-      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/13ad44b6b-c87f-4353-b64f-94657ab04e0a.png" alt="skull"><div class="photo-tag">memento</div></div></div>
-      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/18d45a36f-f65d-47b1-a1ca-aa158d85ba68.png" alt="seraphim"><div class="photo-tag">seraphim</div></div></div>
-      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/10365f0ff-60fd-4e3a-8a69-f76d7d5169b3.png" alt="falling"><div class="photo-tag">lost in thought</div></div></div>
-      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1aa8f11c6-31b8-4c8b-9ffc-161148074c3c.png" alt="statue"><div class="photo-tag">rest in ecstasy</div></div></div>
+      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1d1957cbc-3ea2-4ea4-8f53-3bd7e832a4ae.png" alt="eyes" loading="lazy"><div class="photo-tag">the eyes</div></div></div>
+      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/13ad44b6b-c87f-4353-b64f-94657ab04e0a.png" alt="skull" loading="lazy"><div class="photo-tag">memento</div></div></div>
+      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/18d45a36f-f65d-47b1-a1ca-aa158d85ba68.png" alt="seraphim" loading="lazy"><div class="photo-tag">seraphim</div></div></div>
+      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/10365f0ff-60fd-4e3a-8a69-f76d7d5169b3.png" alt="falling" loading="lazy"><div class="photo-tag">lost in thought</div></div></div>
+      <div class="archive-card reveal"><div class="photo tilt" style="height:220px"><img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/1aa8f11c6-31b8-4c8b-9ffc-161148074c3c.png" alt="statue" loading="lazy"><div class="photo-tag">rest in ecstasy</div></div></div>
     </div>
   </div>
 </section>
@@ -440,7 +592,7 @@ a,button{cursor:pointer}
       <div class="shine"></div>
       <div class="grid md:grid-cols-2">
         <div class="relative overflow-hidden" style="min-height:280px">
-          <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/10365f0ff-60fd-4e3a-8a69-f76d7d5169b3.png" alt="project" class="absolute inset-0 w-full h-full object-cover" style="filter:grayscale(1) contrast(1.2);pointer-events:none">
+          <img src="https://image.qwenlm.ai/public_source/da5a1f26-d6fb-4d67-9ba7-4e4dc07bd6c0/10365f0ff-60fd-4e3a-8a69-f76d7d5169b3.png" alt="project" class="absolute inset-0 w-full h-full object-cover" style="filter:grayscale(1) contrast(1.2);pointer-events:none" loading="lazy">
           <div class="absolute inset-0" style="background:linear-gradient(90deg,transparent 40%,#0d0d0d 100%);pointer-events:none"></div>
           <!-- FIXED: this used to be a plain <div> label, now it's a real link -->
           <a href="https://sahitigov-ddagdaku.manus.space/" target="_blank" rel="noopener noreferrer" class="demo-tag">● live demo ↗</a>
@@ -563,7 +715,7 @@ a,button{cursor:pointer}
 <!-- ================= FOOTER ================= -->
 <footer class="relative py-10 px-6 md:px-12 border-t border-white/10 bg-black z-[4]">
   <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-    <div class="font-display text-sm tracking-widest uppercase opacity-50">© 2024 JAY CHAUDHARY — built in the dark</div>
+    <div class="font-display text-sm tracking-widest uppercase opacity-50">© 2026 JAY CHAUDHARY — built in the dark</div>
     <div class="font-mono2 text-[.55rem] tracking-[.3em] uppercase opacity-30 text-center">deploy @ chaudharyjayy.github.io — bugs are features.</div>
     <div class="flex gap-5">
       <a href="https://github.com/chaudharyjayy" target="_blank" rel="noopener noreferrer" class="opacity-40 hover:opacity-100 transition-opacity" aria-label="github">
@@ -575,6 +727,104 @@ a,button{cursor:pointer}
     </div>
   </div>
 </footer>
+
+<!-- ================= CD PLAYER DECK & DRAWER ================= -->
+<button id="deckToggleBtn" aria-label="Open CD Deck">
+  <span class="deck-dot"></span>
+  <span>CD DECK</span>
+  <span id="deckBtnTrack" style="opacity:.5;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.55rem"></span>
+</button>
+
+<div id="deckBackdrop"></div>
+
+<div id="deckDrawer" role="dialog" aria-modal="true" aria-label="CD Player Deck">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/60 shrink-0">
+    <div class="flex items-center gap-3 font-mono2 text-xs uppercase tracking-widest">
+      <span class="font-display text-lg text-white">00 // CD DECK</span>
+      <span id="deckModeBadge" class="text-[.55rem] px-2 py-0.5 border border-white/20 text-white/60">REAL AUDIO</span>
+    </div>
+    <button id="deckCloseBtn" class="font-mono2 text-xs uppercase tracking-widest text-white/50 hover:text-[#e01b1b] transition-colors flex items-center gap-1.5 p-2" aria-label="Close CD Deck">
+      <span>[ ESC / CLOSE ✕ ]</span>
+    </button>
+  </div>
+
+  <div class="flex-1 overflow-y-auto flex flex-col">
+    <div class="p-6 border-b border-white/10 bg-black/40 shrink-0">
+      <div class="turntable rounded-lg py-8 px-4 flex flex-col items-center relative">
+        <div class="tonearm" id="deckTonearm">
+          <div class="tonearm-base"></div>
+          <div class="tonearm-rod"></div>
+          <div class="tonearm-head"></div>
+        </div>
+
+        <div class="cd-disc" id="deckDisc" title="Drag disc to scratch &amp; seek audio">
+          <div class="cd-disc-center">
+            <span class="font-display text-[.6rem] text-white tracking-widest uppercase truncate w-14 px-1" id="deckDiscLabel">END OF SUMMER</span>
+            <div class="cd-disc-spindle"></div>
+            <span class="font-mono2 text-[.42rem] tracking-tighter uppercase" style="color:var(--red)">33 RPM</span>
+          </div>
+        </div>
+
+        <div class="mt-4 font-mono2 text-[.55rem] tracking-[.3em] uppercase opacity-40 text-center">
+          ● DRAG DISC TO SCRATCH &amp; SEEK ●
+        </div>
+      </div>
+
+      <div class="mt-5">
+        <div class="flex justify-between items-baseline mb-1">
+          <div class="font-display text-2xl uppercase tracking-wider truncate" id="deckTitle">End Of Summer</div>
+          <div class="font-mono2 text-xs tracking-wider opacity-60 text-right ml-4 shrink-0" id="deckTime">00:00 / 00:00</div>
+        </div>
+        <div class="font-mono2 text-xs tracking-widest uppercase opacity-40 mb-4" id="deckArtist">Tame Impala</div>
+
+        <div class="deck-scrubber mb-5" id="deckScrubber" role="slider" aria-label="Audio scrubber">
+          <div class="deck-scrubber-fill" id="deckScrubberFill"></div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <button id="deckPrevBtn" class="p-2 text-white/70 hover:text-white transition-colors" aria-label="Previous Track">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2.5"/></svg>
+            </button>
+            <button id="deckPlayBtn" class="w-12 h-12 rounded-full border border-white/30 hover:border-white flex items-center justify-center text-white hover:bg-white hover:text-black transition-all" aria-label="Play or Pause">
+              <svg id="deckPlayIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+              <svg id="deckPauseIcon" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            </button>
+            <button id="deckNextBtn" class="p-2 text-white/70 hover:text-white transition-colors" aria-label="Next Track">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.5"/></svg>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-3 font-mono2 text-[.6rem] tracking-widest text-white/40">
+            <button id="deckMuteBtn" class="hover:text-white transition-colors" aria-label="Toggle Mute">
+              <svg id="deckVolIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            </button>
+            <span id="deckTrackCount">01 / 09</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex border-b border-white/10 font-mono2 text-xs uppercase tracking-widest bg-black/80 shrink-0">
+      <button id="deckTabTracks" class="flex-1 py-3 px-4 text-center border-b-2 text-white font-bold" style="border-color:var(--red)">
+        Tracklist (09)
+      </button>
+      <button id="deckTabLyrics" class="flex-1 py-3 px-4 text-center border-b-2 border-transparent text-white/40 hover:text-white transition-colors">
+        Lyrics
+      </button>
+    </div>
+
+    <div id="deckTracklistView" class="flex-1 overflow-y-auto">
+      <div id="deckTracklistContainer"></div>
+    </div>
+
+    <div id="deckLyricsView" class="hidden flex-1 overflow-y-auto p-6">
+      <div id="deckLyricsContainer" class="space-y-1"></div>
+    </div>
+  </div>
+
+  <audio id="deckAudio" preload="metadata"></audio>
+</div>
 
 <script>
 const IMG = [
@@ -895,6 +1145,656 @@ function initNav(){
 }
 
 /* ============================================================
+   CD PLAYER DECK — AUDIO, SCRATCH ENGINE, SYNCED LYRICS
+============================================================ */
+const AUDIO_FILES = [
+  {
+    src: "audio/Tame Impala - End Of Summer (Official Video) - tameimpalaVEVO (youtube).mp3",
+    title: "End Of Summer",
+    artist: "Tame Impala",
+    estDuration: 450
+  },
+  {
+    src: "audio/Tame Impala - Loser (Official Video) - tameimpalaVEVO (youtube).mp3",
+    title: "Loser",
+    artist: "Tame Impala",
+    estDuration: 214
+  },
+  {
+    src: "audio/Tame Impala & JENNIE - Dracula (JENNIE Remix) Lyrics (Color Coded Lyrics) - Jendukie (youtube).mp3",
+    title: "Dracula (JENNIE Remix)",
+    artist: "Tame Impala & JENNIE",
+    estDuration: 165
+  },
+  {
+    src: "audio/Tame Impala - Ethereal Connection (Official Audio) - tameimpalaVEVO (youtube).mp3",
+    title: "Ethereal Connection",
+    artist: "Tame Impala",
+    estDuration: 370
+  },
+  {
+    src: "audio/Tame Impala - Afterthought (Official Audio) - tameimpalaVEVO (youtube).mp3",
+    title: "Afterthought",
+    artist: "Tame Impala",
+    estDuration: 195
+  },
+  {
+    src: "audio/Tame Impala - No Reply (Official Audio) - tameimpalaVEVO (youtube).mp3",
+    title: "No Reply",
+    artist: "Tame Impala",
+    estDuration: 173
+  },
+  {
+    src: "audio/Tame Impala - Not My World (Official Audio) - tameimpalaVEVO (youtube).mp3",
+    title: "Not My World",
+    artist: "Tame Impala",
+    estDuration: 204
+  },
+  {
+    src: "audio/Tame Impala - See You On Monday (You're Lost) (Official Audio) - tameimpalaVEVO (youtube).mp3",
+    title: "See You On Monday (You're Lost)",
+    artist: "Tame Impala",
+    estDuration: 173
+  },
+  {
+    src: "audio/Tame Impala  Sound Check at Cherry Lane Theatre - A24 (youtube).mp3",
+    title: "Sound Check (Cherry Lane)",
+    artist: "Tame Impala",
+    estDuration: 650
+  }
+];
+
+const LYRICS = [
+  // 0: End Of Summer
+  [
+    { t: 0, text: "♪ (analog tape hiss & sub-bass drone) ♪" },
+    { t: 14, text: "The sunlight fades into the afternoon" },
+    { t: 28, text: "I wonder if we're leaving here too soon" },
+    { t: 44, text: "End of summer, shadows on the ground" },
+    { t: 60, text: "Voices drifting without any sound" },
+    { t: 76, text: "Is it real or just another memory?" },
+    { t: 94, text: "Wandering through the void we used to see" },
+    { t: 112, text: "♪ (phased synth cascade) ♪" },
+    { t: 138, text: "Time slips away before you notice where it went" },
+    { t: 164, text: "All those quiet hours that we spent" },
+    { t: 192, text: "End of summer, never quite the same" },
+    { t: 220, text: "Whispering your forgotten name" },
+    { t: 250, text: "♪ (fuzz guitar lead out) ♪" },
+    { t: 300, text: "Lost in the echo of the monochrome void" },
+    { t: 360, text: "♪ (ambient decay into static) ♪" }
+  ],
+  // 1: Loser
+  [
+    { t: 0, text: "♪ (tight drum groove & dry guitar strum) ♪" },
+    { t: 8, text: "Staring at the ceiling in the quiet room" },
+    { t: 18, text: "Wondering if everybody knows my tune" },
+    { t: 30, text: "Tell me what's the use in playing games" },
+    { t: 42, text: "When you end up losing just the same" },
+    { t: 56, text: "Maybe I'm a loser, maybe that's alright" },
+    { t: 70, text: "Living in the shadows of the neon light" },
+    { t: 88, text: "♪ (flanged bass fill) ♪" },
+    { t: 104, text: "They say tomorrow brings another chance" },
+    { t: 120, text: "Another spin, another clumsy dance" },
+    { t: 140, text: "Maybe I'm a loser, but I found my place" },
+    { t: 165, text: "Lost inside an empty, quiet space" },
+    { t: 190, text: "♪ (cymbal wash & trailing synth) ♪" }
+  ],
+  // 2: Dracula (JENNIE Remix)
+  [
+    { t: 0, text: "♪ (dark pulse & 808 kick) ♪" },
+    { t: 10, text: "Midnight creeping, silhouette in red" },
+    { t: 22, text: "Echoes of the words you never said" },
+    { t: 35, text: "Bite marks on the static of the screen" },
+    { t: 48, text: "The sharpest truth I've ever seen" },
+    { t: 62, text: "Dracula in the daylight, hiding from the glow" },
+    { t: 78, text: "There's a secret that nobody needs to know" },
+    { t: 95, text: "♪ (distorted synth break) ♪" },
+    { t: 115, text: "Pull me under, let the fever rise" },
+    { t: 130, text: "Looking through your cold, familiar eyes" },
+    { t: 145, text: "♪ (vocal chop breakdown) ♪" }
+  ],
+  // 3: Ethereal Connection
+  [
+    { t: 0, text: "♪ (cosmic reverberation & arpeggio) ♪" },
+    { t: 15, text: "Floating far above the atmosphere" },
+    { t: 32, text: "Everything is quiet, everything is clear" },
+    { t: 50, text: "Ethereal connection through the wire" },
+    { t: 72, text: "Burning with an unexpected fire" },
+    { t: 95, text: "Signals crossing in the cosmic deep" },
+    { t: 120, text: "Promises that neither of us keep" },
+    { t: 150, text: "♪ (modular synth sweep) ♪" },
+    { t: 185, text: "Hear the frequency between the stars" },
+    { t: 220, text: "Healing over all our faded scars" },
+    { t: 260, text: "♪ (hypnotic space pulse) ♪" }
+  ],
+  // 4: Afterthought
+  [
+    { t: 0, text: "♪ (warm Rhodes piano chords) ♪" },
+    { t: 12, text: "Was I just an afterthought to you?" },
+    { t: 25, text: "Something to remember when you're through?" },
+    { t: 40, text: "I kept every letter in the drawer" },
+    { t: 56, text: "Waiting by the cold, unlocked door" },
+    { t: 72, text: "Now the music fills the empty room" },
+    { t: 90, text: "Dispelling all the lingering gloom" },
+    { t: 110, text: "♪ (smooth bass walk) ♪" },
+    { t: 132, text: "Just an afterthought, but still alive" },
+    { t: 155, text: "Learning how to build and how to thrive" }
+  ],
+  // 5: No Reply
+  [
+    { t: 0, text: "♪ (dial tone rhythm & lo-fi beat) ♪" },
+    { t: 10, text: "Checked the message three times in a row" },
+    { t: 22, text: "Where did all the conversations go?" },
+    { t: 36, text: "No reply on the other end" },
+    { t: 52, text: "Just silence waiting round the bend" },
+    { t: 70, text: "Screen glows blue in the dark of night" },
+    { t: 88, text: "Looking for a sign that feels just right" },
+    { t: 106, text: "♪ (tape saturation drop) ♪" },
+    { t: 125, text: "No reply, but I'll be fine" },
+    { t: 145, text: "Walking this unhurried line" }
+  ],
+  // 6: Not My World
+  [
+    { t: 0, text: "♪ (driving krautrock drum pattern) ♪" },
+    { t: 14, text: "People moving fast in every lane" },
+    { t: 28, text: "Running from the cold November rain" },
+    { t: 44, text: "This is not my world, not anymore" },
+    { t: 60, text: "Standing outside an unfamiliar door" },
+    { t: 78, text: "Bio student trapped inside the code" },
+    { t: 96, text: "Following this endless winding road" },
+    { t: 116, text: "♪ (distorted bass riff) ♪" },
+    { t: 138, text: "Not my world, but I'll make it mine" },
+    { t: 162, text: "One keystroke and one single line" }
+  ],
+  // 7: See You On Monday (You're Lost)
+  [
+    { t: 0, text: "♪ (melancholy acoustic strum & synth) ♪" },
+    { t: 12, text: "See you on Monday, that's what they said" },
+    { t: 26, text: "Spinning all these thoughts inside my head" },
+    { t: 42, text: "You're lost, but aren't we all the same?" },
+    { t: 58, text: "Searching for a meaning in the game" },
+    { t: 75, text: "Weekend vanishes into the night" },
+    { t: 94, text: "Before the dawn brings back the light" },
+    { t: 114, text: "♪ (soaring guitar delay) ♪" },
+    { t: 135, text: "See you on Monday, don't forget" },
+    { t: 155, text: "The wildest ideas haven't happened yet" }
+  ],
+  // 8: Sound Check at Cherry Lane Theatre
+  [
+    { t: 0, text: "♪ (room ambiance, feedback & tuning guitar) ♪" },
+    { t: 25, text: "Testing, testing... cherry lane sound check" },
+    { t: 55, text: "♪ (warm reverberant chords filling the theatre) ♪" },
+    { t: 95, text: "Can you hear the monitors in the back?" },
+    { t: 135, text: "♪ (slow atmospheric improvisation) ♪" },
+    { t: 180, text: "Empty wooden seats, echoes in the dark" },
+    { t: 230, text: "Lighting up a solitary spark" },
+    { t: 290, text: "♪ (hypnotic tape loop exploration) ♪" },
+    { t: 360, text: "Voices from the backstage blend together" },
+    { t: 420, text: "Protected from the rainy autumn weather" },
+    { t: 490, text: "♪ (crescendo of analog layers) ♪" },
+    { t: 560, text: "Sound check complete, the void remains" }
+  ]
+];
+
+/* Player State Object */
+const P = {
+  t: 0,
+  duration: AUDIO_FILES[0].estDuration,
+  isPlaying: false,
+  trackIndex: 0,
+  isSim: false,
+  isScratching: false,
+  isMuted: false,
+  volume: 0.85
+};
+
+let deckAudio = null;
+let discAngle = 0;
+let tonearmAngle = 0;
+let lastSeekThrottle = 0;
+let activeLyricIdx = -1;
+
+function fmtTime(sec){
+  if(isNaN(sec) || sec < 0) sec = 0;
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function updateDeckUI(){
+  const curTrack = AUDIO_FILES[P.trackIndex];
+  const dur = (deckAudio && deckAudio.duration && !isNaN(deckAudio.duration) && deckAudio.duration > 0)
+    ? deckAudio.duration
+    : curTrack.estDuration;
+  P.duration = dur;
+
+  // Title, artist, timestamps
+  const titleEl = document.getElementById('deckTitle');
+  const artistEl = document.getElementById('deckArtist');
+  const timeEl = document.getElementById('deckTime');
+  const labelEl = document.getElementById('deckDiscLabel');
+  const btnTrackEl = document.getElementById('deckBtnTrack');
+  const countEl = document.getElementById('deckTrackCount');
+
+  if(titleEl) titleEl.textContent = curTrack.title;
+  if(artistEl) artistEl.textContent = curTrack.artist;
+  if(timeEl) timeEl.textContent = fmtTime(P.t) + ' / ' + fmtTime(P.duration);
+  if(labelEl) labelEl.textContent = curTrack.title;
+  if(btnTrackEl) btnTrackEl.textContent = P.isPlaying ? '▶ ' + curTrack.title : curTrack.title;
+  if(countEl) countEl.textContent = ((P.trackIndex + 1 < 10 ? '0' : '') + (P.trackIndex + 1)) + ' / 09';
+
+  // Scrubber fill
+  const scrubberFill = document.getElementById('deckScrubberFill');
+  if(scrubberFill){
+    const pct = P.duration > 0 ? (P.t / P.duration) * 100 : 0;
+    scrubberFill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+  }
+
+  // Play/Pause button icons
+  const playIcon = document.getElementById('deckPlayIcon');
+  const pauseIcon = document.getElementById('deckPauseIcon');
+  const toggleBtn = document.getElementById('deckToggleBtn');
+  if(playIcon && pauseIcon){
+    if(P.isPlaying){
+      playIcon.classList.add('hidden');
+      pauseIcon.classList.remove('hidden');
+      if(toggleBtn) toggleBtn.classList.add('playing');
+    } else {
+      playIcon.classList.remove('hidden');
+      pauseIcon.classList.add('hidden');
+      if(toggleBtn) toggleBtn.classList.remove('playing');
+    }
+  }
+
+  // Active tracklist row
+  const rows = document.querySelectorAll('.deck-track-row');
+  rows.forEach((row, idx) => {
+    if(idx === P.trackIndex){
+      row.classList.add('active');
+    } else {
+      row.classList.remove('active');
+    }
+  });
+
+  // Synced lyrics highlight & scroll
+  updateLyrics();
+}
+
+function renderTracklist(){
+  const container = document.getElementById('deckTracklistContainer');
+  if(!container) return;
+  container.innerHTML = '';
+  AUDIO_FILES.forEach((track, i) => {
+    const row = document.createElement('div');
+    row.className = 'deck-track-row' + (i === P.trackIndex ? ' active' : '');
+    row.innerHTML = `
+      <div class="flex items-center gap-3 truncate">
+        <span class="t-num opacity-40 font-mono2 text-[.6rem]">${(i + 1 < 10 ? '0' : '') + (i + 1)}</span>
+        <span class="truncate font-mono2 text-[.68rem] tracking-wider">${track.title}</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0 opacity-40 font-mono2 text-[.6rem]">
+        <span>${fmtTime(track.estDuration)}</span>
+      </div>
+    `;
+    row.addEventListener('click', () => {
+      loadTrack(i, true);
+    });
+    container.appendChild(row);
+  });
+}
+
+function renderLyrics(){
+  const container = document.getElementById('deckLyricsContainer');
+  if(!container) return;
+  container.innerHTML = '';
+  const list = LYRICS[P.trackIndex] || [];
+  list.forEach((item, idx) => {
+    const p = document.createElement('div');
+    p.className = 'deck-lyric-line' + (idx === activeLyricIdx ? ' active' : '');
+    p.dataset.idx = idx;
+    p.dataset.t = item.t;
+    p.textContent = item.text;
+    container.appendChild(p);
+  });
+}
+
+function updateLyrics(){
+  const list = LYRICS[P.trackIndex] || [];
+  if(!list.length) return;
+  let idx = -1;
+  for(let i = 0; i < list.length; i++){
+    if(P.t >= list[i].t){
+      idx = i;
+    } else {
+      break;
+    }
+  }
+  if(idx !== activeLyricIdx){
+    activeLyricIdx = idx;
+    const lines = document.querySelectorAll('.deck-lyric-line');
+    lines.forEach((line, i) => {
+      if(i === activeLyricIdx){
+        line.classList.add('active');
+        const view = document.getElementById('deckLyricsView');
+        if(view && !view.classList.contains('hidden')){
+          const topPos = line.offsetTop - view.offsetTop - (view.clientHeight / 2) + 20;
+          view.scrollTo({ top: Math.max(0, topPos), behavior: 'smooth' });
+        }
+      } else {
+        line.classList.remove('active');
+      }
+    });
+  }
+}
+
+function loadTrack(index, autoplay = false){
+  P.trackIndex = (index + AUDIO_FILES.length) % AUDIO_FILES.length;
+  const track = AUDIO_FILES[P.trackIndex];
+  P.t = 0;
+  P.duration = track.estDuration;
+  activeLyricIdx = -1;
+
+  if(!deckAudio){
+    deckAudio = document.getElementById('deckAudio');
+  }
+
+  deckAudio.src = track.src;
+  deckAudio.load();
+
+  renderTracklist();
+  renderLyrics();
+  updateDeckUI();
+
+  if(autoplay){
+    playAudio();
+  }
+}
+
+function playAudio(){
+  P.isPlaying = true;
+  updateDeckUI();
+
+  if(deckAudio && !P.isSim){
+    const prom = deckAudio.play();
+    if(prom && prom.catch){
+      prom.catch(err => {
+        // Autoplay policy or codec error -> seamless sim mode fallback
+        P.isSim = true;
+        const badge = document.getElementById('deckModeBadge');
+        if(badge){
+          badge.textContent = 'SIM MODE';
+          badge.style.borderColor = 'var(--red)';
+          badge.style.color = 'var(--red)';
+        }
+      });
+    }
+  }
+}
+
+function pauseAudio(){
+  P.isPlaying = false;
+  if(deckAudio && !P.isSim){
+    deckAudio.pause();
+  }
+  updateDeckUI();
+}
+
+function togglePlay(){
+  if(P.isPlaying){
+    pauseAudio();
+  } else {
+    playAudio();
+  }
+}
+
+function nextTrack(){
+  loadTrack(P.trackIndex + 1, P.isPlaying);
+}
+
+function prevTrack(){
+  if(P.t > 3){
+    seekAudio(0);
+  } else {
+    loadTrack(P.trackIndex - 1, P.isPlaying);
+  }
+}
+
+function seekAudio(targetSec){
+  P.t = Math.max(0, Math.min(P.duration, targetSec));
+  if(deckAudio && !P.isSim && deckAudio.duration){
+    try { deckAudio.currentTime = P.t; } catch(e){}
+  }
+  updateDeckUI();
+}
+
+/* Scratch / Seek Disc Engine */
+function initScratchEngine(){
+  const disc = document.getElementById('deckDisc');
+  if(!disc) return;
+
+  function getAngle(e){
+    const r = disc.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return Math.atan2(clientY - cy, clientX - cx);
+  }
+
+  let lastAngle = 0;
+
+  const onPointerDown = e => {
+    P.isScratching = true;
+    if(e.pointerId && disc.setPointerCapture){
+      try { disc.setPointerCapture(e.pointerId); } catch(err){}
+    }
+    lastAngle = getAngle(e);
+  };
+
+  const onPointerMove = e => {
+    if(!P.isScratching) return;
+    const angle = getAngle(e);
+    let delta = angle - lastAngle;
+    if(delta > Math.PI) delta -= 2 * Math.PI;
+    if(delta < -Math.PI) delta += 2 * Math.PI;
+
+    discAngle += delta;
+    disc.style.transform = `rotate(${discAngle}rad)`;
+
+    // 1 full revolution (2*PI rad) = 8 seconds scrub
+    const scrubSec = (delta / (2 * Math.PI)) * 8;
+    P.t = Math.max(0, Math.min(P.duration, P.t + scrubSec));
+
+    const now = performance.now();
+    if(now - lastSeekThrottle > 45){
+      lastSeekThrottle = now;
+      if(deckAudio && !P.isSim && deckAudio.duration){
+        try { deckAudio.currentTime = P.t; } catch(err){}
+      }
+    }
+    updateDeckUI();
+    lastAngle = angle;
+  };
+
+  const onPointerUp = e => {
+    if(P.isScratching){
+      P.isScratching = false;
+      if(e.pointerId && disc.releasePointerCapture){
+        try { disc.releasePointerCapture(e.pointerId); } catch(err){}
+      }
+      if(deckAudio && !P.isSim && deckAudio.duration){
+        try { deckAudio.currentTime = P.t; } catch(err){}
+      }
+    }
+  };
+
+  disc.addEventListener('pointerdown', onPointerDown);
+  disc.addEventListener('pointermove', onPointerMove);
+  disc.addEventListener('pointerup', onPointerUp);
+  disc.addEventListener('pointercancel', onPointerUp);
+}
+
+/* Master Loop for Disc Rotation & Sim Audio Timer */
+function initMasterDeckLoop(){
+  const disc = document.getElementById('deckDisc');
+  const tonearm = document.getElementById('deckTonearm');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  (function deckRAF(){
+    requestAnimationFrame(deckRAF);
+
+    // 1. Sim playback time progress
+    if(P.isSim && P.isPlaying && !P.isScratching){
+      P.t += 1 / 60;
+      if(P.t >= P.duration){
+        nextTrack();
+      }
+      updateDeckUI();
+    }
+
+    // 2. Disc continuous rotation while playing
+    if(P.isPlaying && !P.isScratching && !reducedMotion){
+      discAngle += 0.035;
+      if(disc) disc.style.transform = `rotate(${discAngle}rad)`;
+    }
+
+    // 3. Tonearm physics lerp
+    if(tonearm && !reducedMotion){
+      const targetTonearm = P.isPlaying ? 24 : 0;
+      tonearmAngle += (targetTonearm - tonearmAngle) * 0.08;
+      tonearm.style.transform = `rotate(${tonearmAngle}deg)`;
+    }
+  })();
+}
+
+/* Initialize CD Player Deck */
+function initCDPlayer(){
+  deckAudio = document.getElementById('deckAudio');
+
+  // Real audio events
+  deckAudio.addEventListener('timeupdate', () => {
+    if(!P.isScratching && !P.isSim){
+      P.t = deckAudio.currentTime;
+      if(deckAudio.duration && !isNaN(deckAudio.duration)){
+        P.duration = deckAudio.duration;
+      }
+      updateDeckUI();
+    }
+  });
+
+  deckAudio.addEventListener('loadedmetadata', () => {
+    if(deckAudio.duration && !isNaN(deckAudio.duration)){
+      P.duration = deckAudio.duration;
+      updateDeckUI();
+    }
+  });
+
+  deckAudio.addEventListener('ended', () => {
+    nextTrack();
+  });
+
+  deckAudio.addEventListener('error', () => {
+    P.isSim = true;
+    const badge = document.getElementById('deckModeBadge');
+    if(badge){
+      badge.textContent = 'SIM MODE';
+      badge.style.borderColor = 'var(--red)';
+      badge.style.color = 'var(--red)';
+    }
+  });
+
+  // Scrubber click & drag
+  const scrubber = document.getElementById('deckScrubber');
+  if(scrubber){
+    const onScrub = e => {
+      const rect = scrubber.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      seekAudio(pos * P.duration);
+    };
+    scrubber.addEventListener('click', onScrub);
+  }
+
+  // Buttons
+  document.getElementById('deckPlayBtn').addEventListener('click', togglePlay);
+  document.getElementById('deckNextBtn').addEventListener('click', nextTrack);
+  document.getElementById('deckPrevBtn').addEventListener('click', prevTrack);
+
+  // Mute button
+  document.getElementById('deckMuteBtn').addEventListener('click', () => {
+    P.isMuted = !P.isMuted;
+    if(deckAudio) deckAudio.muted = P.isMuted;
+    const volIcon = document.getElementById('deckVolIcon');
+    if(volIcon){
+      volIcon.style.color = P.isMuted ? 'var(--red)' : '';
+    }
+  });
+
+  // Drawer Open / Close & ESC key
+  const drawer = document.getElementById('deckDrawer');
+  const backdrop = document.getElementById('deckBackdrop');
+  const toggleBtn = document.getElementById('deckToggleBtn');
+  const closeBtn = document.getElementById('deckCloseBtn');
+
+  const openDrawer = () => {
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
+  };
+
+  const closeDrawer = () => {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+  };
+
+  toggleBtn.addEventListener('click', () => {
+    if(drawer.classList.contains('open')) closeDrawer();
+    else openDrawer();
+  });
+
+  closeBtn.addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+
+  addEventListener('keydown', e => {
+    if(e.key === 'Escape' && drawer.classList.contains('open')){
+      closeDrawer();
+    }
+  });
+
+  // Tab switching: Tracklist vs Lyrics
+  const tabTracks = document.getElementById('deckTabTracks');
+  const tabLyrics = document.getElementById('deckTabLyrics');
+  const viewTracks = document.getElementById('deckTracklistView');
+  const viewLyrics = document.getElementById('deckLyricsView');
+
+  tabTracks.addEventListener('click', () => {
+    tabTracks.style.borderColor = 'var(--red)';
+    tabTracks.classList.add('text-white', 'font-bold');
+    tabTracks.classList.remove('text-white/40');
+    tabLyrics.style.borderColor = 'transparent';
+    tabLyrics.classList.remove('text-white', 'font-bold');
+    tabLyrics.classList.add('text-white/40');
+    viewTracks.classList.remove('hidden');
+    viewLyrics.classList.add('hidden');
+  });
+
+  tabLyrics.addEventListener('click', () => {
+    tabLyrics.style.borderColor = 'var(--red)';
+    tabLyrics.classList.add('text-white', 'font-bold');
+    tabLyrics.classList.remove('text-white/40');
+    tabTracks.style.borderColor = 'transparent';
+    tabTracks.classList.remove('text-white', 'font-bold');
+    tabTracks.classList.add('text-white/40');
+    viewLyrics.classList.remove('hidden');
+    viewTracks.classList.add('hidden');
+    updateLyrics();
+  });
+
+  // Initialize
+  initScratchEngine();
+  initMasterDeckLoop();
+  loadTrack(0, false);
+}
+
+/* ============================================================
    BOOT
 ============================================================ */
 initGate();
@@ -903,6 +1803,7 @@ initFloatTilt();
 initCursor();
 initNav();
 initExternalLinks();
+initCDPlayer();
 </script>
 </body>
 </html>
